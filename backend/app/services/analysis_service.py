@@ -58,6 +58,14 @@ class AnalysisService:
             tzinfo=ZoneInfo("Europe/London"),
         )
 
+        delivery_start = datetime(
+            target_date.year,
+            target_date.month,
+            target_date.day,
+            tzinfo=ZoneInfo("UTC"),
+        )
+        delivery_end = delivery_start + timedelta(days=1)
+
         actuals = await self.client.get_actuals(
             target_date.isoformat(),
             target_date.isoformat(),
@@ -113,6 +121,9 @@ class AnalysisService:
             except (TypeError, ValueError):
                 continue
 
+            if not delivery_start <= timestamp < delivery_end:
+                continue
+
             hour_key = timestamp.replace(
                 minute=0,
                 second=0,
@@ -136,7 +147,6 @@ class AnalysisService:
 
         results.sort(key=lambda item: item["period"])
 
-        results.sort(key=lambda item: item["period"])
 
         metrics = calculate_metrics(
             [item["actual_mw"] for item in results],
@@ -153,7 +163,7 @@ class AnalysisService:
                 f"wind actual records: {len(wind_actuals)}; "
                 f"forecast records: {len(forecasts)}; "
                 f"eligible forecast periods: {len(selected_forecasts)}; "
-                f"matched actual periods: {len(actual_by_period)}. "
+                f"matched actual hours: {len(actual_by_hour)}. "
                 f"Actual fields: {actual_fields}; "
                 f"forecast fields: {forecast_fields}"
             )
